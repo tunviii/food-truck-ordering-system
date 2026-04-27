@@ -91,5 +91,3 @@ Built to solve a real campus problem:
 > Long waiting times during food breaks 🍽️
 
 ---
-
-## 🤝 Con
