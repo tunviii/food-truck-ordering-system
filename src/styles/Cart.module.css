@@ -1,0 +1,19 @@
+.container {
+  padding: 20px;
+}
+
+.item {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px;
+  border-bottom: 1px solid #ddd;
+}
+
+.controls {
+  display: flex;
+  gap: 10px;
+}
+
+.footer {
+  margin-top: 20px;
+}

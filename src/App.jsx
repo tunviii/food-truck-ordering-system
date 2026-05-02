@@ -2,29 +2,21 @@ import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
 import Landing from "./pages/Landing";
+import Cart from "./pages/Cart";
+import Admin from "./pages/Admin"; 
+import Kitchen from "./pages/Kitchen";
 
-// Placeholder pages (replace later)
-const Kitchen = () => (
-  <div style={{ padding: "40px" }}>
-    <h1>🍳 Kitchen Dashboard</h1>
-  </div>
-);
-
-const Admin = () => (
-  <div style={{ padding: "40px" }}>
-    <h1>⚙️ Admin Panel</h1>
-  </div>
-);
 
 export default function App() {
   return (
     <Router>
       <Routes>
         {/* Main Menu */}
-        <Route path="/" element={<Landing/>} />
-        <Route path="/menu" element={<Landing/>} />
+        <Route path="/" element={<Landing />} />
+        <Route path="/menu" element={<Landing />} />
+        <Route path="/cart" element={<Cart />} />
 
-        {/* Future Pages */}
+        {/* Admin + Kitchen */}
         <Route path="/kitchen" element={<Kitchen />} />
         <Route path="/admin" element={<Admin />} />
       </Routes>
