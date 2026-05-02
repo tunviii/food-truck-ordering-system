@@ -1,0 +1,41 @@
+.container {
+  padding: 20px;
+}
+
+.form {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.form input,
+.form select {
+  padding: 6px;
+}
+
+.form button {
+  background: #ff4d4d;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  border-bottom: 1px solid #ddd;
+  padding: 10px;
+  text-align: left;
+}
+
+.table button {
+  background: red;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+}

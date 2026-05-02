@@ -1,6 +1,8 @@
 import React, { useState, useMemo, useEffect } from "react";
 import styles from "../styles/Landing.module.css";
 import heroImage from "../assets/hero-noodles.jpg";
+import { Link } from "react-router-dom";
+import { useMenu } from "../lib/menuStore";
 
 // ─── Types & Constants ────────────────────────────────────────────────────────
 const CATEGORY_LABELS = {
@@ -95,100 +97,6 @@ function useCart() {
   return { items, totalItems, totalAmount };
 }
 
-// ─── Demo Menu Data (replace with Supabase call) ──────────────────────────────
-const DEMO_ITEMS = [
-  {
-    id: "1",
-    name: "Veg Hakka Noodles",
-    description: "Classic street-style tossed with crunchy veggies & soy",
-    price: 80,
-    category: "noodles",
-    is_veg: true,
-    is_spicy: false,
-    prep_time_minutes: 8,
-  },
-  {
-    id: "2",
-    name: "Schezwan Noodles",
-    description: "Fiery wok-tossed with schezwan sauce & peppers",
-    price: 90,
-    category: "noodles",
-    is_veg: true,
-    is_spicy: true,
-    prep_time_minutes: 10,
-  },
-  {
-    id: "3",
-    name: "Veg Fried Rice",
-    description: "Fragrant rice stir-fried with seasonal vegetables",
-    price: 80,
-    category: "rice",
-    is_veg: true,
-    is_spicy: false,
-    prep_time_minutes: 8,
-  },
-  {
-    id: "4",
-    name: "Egg Fried Rice",
-    description: "Golden scrambled eggs folded into aromatic rice",
-    price: 100,
-    category: "rice",
-    is_veg: false,
-    is_spicy: false,
-    prep_time_minutes: 10,
-  },
-  {
-    id: "5",
-    name: "Veg Manchurian",
-    description: "Crispy veggie balls dunked in tangy manchurian gravy",
-    price: 100,
-    category: "manchurian",
-    is_veg: true,
-    is_spicy: true,
-    prep_time_minutes: 12,
-  },
-  {
-    id: "6",
-    name: "Spring Rolls",
-    description: "Golden crispy rolls stuffed with spiced cabbage & noodles",
-    price: 70,
-    category: "starters",
-    is_veg: true,
-    is_spicy: false,
-    prep_time_minutes: 6,
-  },
-  {
-    id: "7",
-    name: "Hot & Sour Soup",
-    description: "Rich, tangy broth with silky tofu and mushrooms",
-    price: 60,
-    category: "soups",
-    is_veg: true,
-    is_spicy: true,
-    prep_time_minutes: 5,
-  },
-  {
-    id: "8",
-    name: "Noodles + Manchurian Combo",
-    description: "Half portion noodles + veg manchurian — the classics together",
-    price: 130,
-    category: "combos",
-    is_veg: true,
-    is_spicy: false,
-    prep_time_minutes: 12,
-  },
-  {
-    id: "9",
-    name: "Cold Coffee",
-    description: "Chilled café-style blended coffee with a creamy finish",
-    price: 50,
-    category: "beverages",
-    is_veg: true,
-    is_spicy: false,
-    prep_time_minutes: 3,
-  },
-];
-
 const ALL = "all";
 
 // ─── Category Chip ─────────────────────────────────────────────────────────────
@@ -230,6 +138,7 @@ function MenuItemCard({ item }) {
       name: item.name,
       price: item.price,
       isVeg: item.is_veg,
+      prep_time_minutes: item.prep_time_minutes,
     });
     setAdded(true);
     setTimeout(() => setAdded(false), 600);
@@ -256,7 +165,7 @@ function MenuItemCard({ item }) {
       {/* Tags */}
       <div className={styles.tags}>
         {item.is_spicy && <span className={styles.tag}>🌶 Spicy</span>}
-        <span className={styles.tag}>⏱ {item.prep_time_minutes} min</span>
+        <span className={styles.tag}>⏱ {item.prep_time_minutes || 5} min</span>
       </div>
 
       <h3 className={styles.cardName}>{item.name}</h3>
@@ -300,12 +209,12 @@ function Navbar({ totalItems }) {
       <div className={styles.navLinks}>
         <a href="#menu" className={styles.navLink}>Menu</a>
         <a href="/kitchen" className={styles.navLink}>Kitchen</a>
-        <a href="/admin" className={styles.navLink}>Admin</a>
-        {totalItems > 0 && (
-          <a href="/cart" className={styles.navCartBtn}>
-            🛒 {totalItems}
-          </a>
-        )}
+        <Link to="/admin" className={styles.navLink}>
+          Admin
+        </Link>
+        <Link to="/cart" className={styles.navCartBtn}>
+  🛒 {totalItems}
+</Link>
       </div>
     </nav>
   );
@@ -358,7 +267,7 @@ function Hero() {
 
 // ─── Landing Page (main export) ───────────────────────────────────────────────
 export default function LandingPage() {
-  const [items] = useState(DEMO_ITEMS); // swap with useEffect + supabase
+  const items = useMenu();
   const [loading] = useState(false);
   const [activeCategory, setActiveCategory] = useState(ALL);
   const { totalItems, totalAmount } = useCart();
@@ -368,10 +277,13 @@ export default function LandingPage() {
   }, [items]);
 
   const visible = useMemo(() => {
-    return activeCategory === ALL
+  const filtered =
+    activeCategory === ALL
       ? items
       : items.filter((i) => i.category === activeCategory);
-  }, [items, activeCategory]);
+
+  return filtered.filter((i) => i.is_available);
+}, [items, activeCategory]);
 
   return (
     <div className={styles.page}>
