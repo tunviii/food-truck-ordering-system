@@ -1,70 +1,90 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import styles from "../styles/Admin.module.css";
 import { CATEGORY_LABELS } from "../lib/types";
 import { menuStore, useMenu } from "../lib/menuStore";
-
-const initialMenu = [
-  {
-    id: "1",
-    name: "Veg Noodles",
-    price: 80,
-    category: "noodles",
-    is_veg: true,
-    is_available: true,
-  },
-];
-
+import BackButton from "../components/BackButton";
 
 
 function Admin() {
-  const menu = useMenu();
+  const { items: menu, loading, error } = useMenu();
   const [editingId, setEditingId] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
 
   const [form, setForm] = useState({
     name: "",
+    description: "",
     price: "",
     category: "noodles",
     is_veg: true,
-    prep_time_minutes: 10
+    is_spicy: false,
+    prep_time_minutes: 10,
   });
 
-  const handleSubmit = () => {
-  if (!form.name || !form.price) return;
-
-  const newItem = {
-    id: editingId || Date.now().toString(),
-    name: form.name,
-    price: Number(form.price),
-    category: form.category,
-    is_veg: form.is_veg,
-    prep_time_minutes: Number(form.prep_time_minutes || 5),
-    is_available: true,
+  const resetForm = () => {
+    setForm({
+      name: "",
+      description: "",
+      price: "",
+      category: "noodles",
+      is_veg: true,
+      is_spicy: false,
+      prep_time_minutes: "",
+    });
+    setEditingId(null);
   };
 
-  if (editingId) {
-    menuStore.update(newItem);
-  } else {
-    menuStore.add(newItem);
-  }
+  const handleSubmit = async () => {
+    if (!form.name || !form.price) return;
 
-  // Reset form
-  setForm({
-    name: "",
-    price: "",
-    category: "noodles",
-    is_veg: true,
-    prep_time_minutes: "",
-  });
+    setSaving(true);
+    setMessage("");
 
-  setEditingId(null);
-};
+    const newItem = {
+      id: editingId || Date.now().toString(),
+      name: form.name,
+      description: form.description,
+      price: Number(form.price),
+      category: form.category,
+      is_veg: form.is_veg,
+      is_spicy: form.is_spicy,
+      prep_time_minutes: Number(form.prep_time_minutes || 5),
+      is_available: editingId ? menu.find((item) => item.id === editingId)?.is_available ?? true : true,
+    };
 
-  const toggleAvailability = (id) => {
-    menuStore.toggleAvailability(id);
+    try {
+      if (editingId) {
+        await menuStore.update(newItem);
+        setMessage("Item updated.");
+      } else {
+        await menuStore.add(newItem);
+        setMessage("Item added.");
+      }
+
+      resetForm();
+    } catch (submitError) {
+      setMessage(submitError.message);
+    } finally {
+      setSaving(false);
+    }
   };
 
-const deleteItem = (id) => {
-    menuStore.remove(id);
+  const toggleAvailability = async (id) => {
+    setMessage("");
+    try {
+      await menuStore.toggleAvailability(id);
+    } catch (toggleError) {
+      setMessage(toggleError.message);
+    }
+  };
+
+  const deleteItem = async (id) => {
+    setMessage("");
+    try {
+      await menuStore.remove(id);
+    } catch (deleteError) {
+      setMessage(deleteError.message);
+    }
   };
 
   const handleEdit = (item) => {
@@ -72,16 +92,22 @@ const deleteItem = (id) => {
 
   setForm({
     name: item.name,
+    description: item.description || "",
     price: item.price,
     category: item.category,
     is_veg: item.is_veg,
+    is_spicy: item.is_spicy,
     prep_time_minutes: item.prep_time_minutes || "",
   });
 };
 
   return (
     <div className={styles.container}>
+      <BackButton to="/" label="Back" />
       <h1>Admin Panel</h1>
+      {loading && <p>Loading menu...</p>}
+      {error && <p>{error}</p>}
+      {message && <p>{message}</p>}
 
       {/* ─── Add Item Form ─── */}
       <div className={styles.form}>
@@ -89,6 +115,12 @@ const deleteItem = (id) => {
           placeholder="Item name"
           value={form.name}
           onChange={(e) => setForm({ ...form, name: e.target.value })}
+        />
+
+        <textarea
+          placeholder="Description"
+          value={form.description}
+          onChange={(e) => setForm({ ...form, description: e.target.value })}
         />
 
         <input
@@ -127,9 +159,18 @@ const deleteItem = (id) => {
           Veg
         </label>
 
-        <button onClick={handleSubmit}>
-  {editingId ? "Update Item" : "Add Item"}
-</button>
+        <label>
+          <input
+            type="checkbox"
+            checked={form.is_spicy}
+            onChange={(e) => setForm({ ...form, is_spicy: e.target.checked })}
+          />
+          Spicy
+        </label>
+
+        <button onClick={handleSubmit} disabled={saving}>
+          {saving ? "Saving..." : editingId ? "💾 Update Item" : "➕ Add Item"}
+        </button>
       </div>
 
       {/* ─── Menu Table ─── */}
@@ -139,6 +180,7 @@ const deleteItem = (id) => {
             <th>Name</th>
             <th>Category</th>
             <th>Price</th>
+            <th>Description</th>
             <th>Prep Time</th>
             <th>Available</th>
             <th>Actions</th>
@@ -151,6 +193,7 @@ const deleteItem = (id) => {
               <td>{item.name}</td>
               <td>{CATEGORY_LABELS[item.category]}</td>
               <td>₹{item.price}</td>
+              <td>{item.description || "-"}</td>
               <td>{item.prep_time_minutes || 5} min</td>
               <td>
                 <input
@@ -161,8 +204,8 @@ const deleteItem = (id) => {
               </td>
 
               <td>
-                <button onClick={() => deleteItem(item.id)}>Delete</button>
-                <button onClick={() => handleEdit(item)}>Edit</button>
+                <button onClick={() => deleteItem(item.id)}>🗑 Delete</button>
+                <button onClick={() => handleEdit(item)}>✏️ Edit</button>
               </td>
               
             </tr>

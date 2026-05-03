@@ -1,8 +1,10 @@
-import React, { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect } from "react";
 import styles from "../styles/Landing.module.css";
 import heroImage from "../assets/hero-noodles.jpg";
 import { Link } from "react-router-dom";
 import { useMenu } from "../lib/menuStore";
+import { cartStore, useCart } from "../lib/cart-store";
+import { clearAuthSession, getAuthSession } from "../lib/auth";
 
 // ─── Types & Constants ────────────────────────────────────────────────────────
 const CATEGORY_LABELS = {
@@ -24,78 +26,6 @@ const CATEGORY_EMOJI = {
   beverages: "🥤",
   combos: "🍱",
 };
-
-// ─── Cart Store (plain JS, no localStorage issues in all environments) ────────
-const STORAGE_KEY = "wokroll_cart";
-const listeners = new Set();
-
-function readCart() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
-function writeCart(items) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-  listeners.forEach((l) => l());
-}
-
-export const cartStore = {
-  getItems: readCart,
-  add(item) {
-    const items = readCart();
-    const existing = items.find((i) => i.menuItemId === item.menuItemId);
-    if (existing) {
-      existing.quantity += 1;
-    } else {
-      items.push({ ...item, quantity: 1 });
-    }
-    writeCart(items);
-  },
-  remove(menuItemId) {
-    writeCart(readCart().filter((i) => i.menuItemId !== menuItemId));
-  },
-  setQuantity(menuItemId, quantity) {
-    const items = readCart();
-    const item = items.find((i) => i.menuItemId === menuItemId);
-    if (!item) return;
-    if (quantity <= 0) {
-      writeCart(items.filter((i) => i.menuItemId !== menuItemId));
-    } else {
-      item.quantity = quantity;
-      writeCart(items);
-    }
-  },
-  clear() {
-    writeCart([]);
-  },
-  subscribe(fn) {
-    listeners.add(fn);
-    return () => listeners.delete(fn);
-  },
-};
-
-function useCart() {
-  const [items, setItems] = useState([]);
-  useEffect(() => {
-    setItems(cartStore.getItems());
-    const unsub = cartStore.subscribe(() => setItems(cartStore.getItems()));
-    const onStorage = (e) => {
-      if (e.key === STORAGE_KEY) setItems(cartStore.getItems());
-    };
-    window.addEventListener("storage", onStorage);
-    return () => {
-      unsub();
-      window.removeEventListener("storage", onStorage);
-    };
-  }, []);
-  const totalItems = items.reduce((sum, i) => sum + i.quantity, 0);
-  const totalAmount = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
-  return { items, totalItems, totalAmount };
-}
 
 const ALL = "all";
 
@@ -200,6 +130,19 @@ function SkeletonCard() {
 
 // ─── Navbar ───────────────────────────────────────────────────────────────────
 function Navbar({ totalItems }) {
+  const [session, setSession] = useState(getAuthSession());
+
+  useEffect(() => {
+    const sync = () => setSession(getAuthSession());
+    window.addEventListener("storage", sync);
+    return () => window.removeEventListener("storage", sync);
+  }, []);
+
+  const handleLogout = () => {
+    clearAuthSession();
+    setSession(null);
+  };
+
   return (
     <nav className={styles.nav}>
       <div className={styles.navBrand}>
@@ -208,13 +151,29 @@ function Navbar({ totalItems }) {
       </div>
       <div className={styles.navLinks}>
         <a href="#menu" className={styles.navLink}>Menu</a>
-        <a href="/kitchen" className={styles.navLink}>Kitchen</a>
-        <Link to="/admin" className={styles.navLink}>
-          Admin
+        <Link to="/track" className={styles.navLink}>
+          Track
         </Link>
-        <Link to="/cart" className={styles.navCartBtn}>
-  🛒 {totalItems}
-</Link>
+        {session?.user?.role === "kitchen" && (
+          <Link to="/kitchen" className={styles.navLink}>
+            Kitchen
+          </Link>
+        )}
+        {session?.user?.role === "admin" && (
+          <Link to="/admin" className={styles.navLink}>
+            Admin
+          </Link>
+        )}
+        {session?.token ? (
+          <button type="button" className={styles.navLink} onClick={handleLogout}>
+                ⎋ Logout
+          </button>
+        ) : (
+          <Link to="/login" className={styles.navLink}>
+                👤 Staff Login
+          </Link>
+        )}
+            <Link to="/cart" className={styles.navCartBtn}>🛒 Cart ({totalItems})</Link>
       </div>
     </nav>
   );
@@ -267,8 +226,7 @@ function Hero() {
 
 // ─── Landing Page (main export) ───────────────────────────────────────────────
 export default function LandingPage() {
-  const items = useMenu();
-  const [loading] = useState(false);
+  const { items, loading, error } = useMenu();
   const [activeCategory, setActiveCategory] = useState(ALL);
   const { totalItems, totalAmount } = useCart();
 
@@ -324,6 +282,11 @@ export default function LandingPage() {
             {Array.from({ length: 6 }).map((_, i) => (
               <SkeletonCard key={i} />
             ))}
+          </div>
+        ) : error ? (
+          <div className={styles.empty}>
+            <div className={styles.emptyEmoji}>⚠️</div>
+            <p>{error}</p>
           </div>
         ) : visible.length === 0 ? (
           <div className={styles.empty}>
