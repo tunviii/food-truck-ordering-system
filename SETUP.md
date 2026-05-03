@@ -63,14 +63,14 @@ cp backend/.env.example backend/.env
 Edit `backend/.env`:
 
 ```env
-# For MongoDB Atlas:
-MONGO_URI=mongodb+srv://your-username:your-password@cluster-name.mongodb.net/food_ordering?retryWrites=true&w=majority
+# For MongoDB Atlas (replace <USERNAME>, <PASSWORD>, <CLUSTER>):
+MONGO_URI=mongodb+srv://<USERNAME>:<PASSWORD>@<CLUSTER>.mongodb.net/food_ordering?retryWrites=true&w=majority
 
 # For Local MongoDB:
 MONGO_URI=mongodb://localhost:27017/food_ordering
 
 # Generate a secure JWT secret (min 32 chars):
-JWT_SECRET=change_this_to_a_super_secret_random_string_at_least_32_chars_long
+JWT_SECRET=<GENERATE_RANDOM_SECRET>
 
 # Port (optional, defaults to 4000)
 PORT=4000
