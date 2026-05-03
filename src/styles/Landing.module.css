@@ -144,7 +144,6 @@
   font-weight: 700;
   color: var(--orange);
   margin-bottom: 26px;
-  box-shadow: 0 4px 14px rgba(255, 77, 28, 0.08);
 }
 
 .badgeDot {
@@ -161,6 +160,8 @@
 }
 
 .heroTitle {
+  min-height: 40px;
+  border: 0;
   font-family: var(--font-display);
   font-size: clamp(52px, 7vw, 84px);
   font-weight: 800;
@@ -362,7 +363,7 @@
   font-weight: 600;
   color: var(--muted);
   cursor: pointer;
-  transition: all 0.22s ease;
+  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease, color 0.22s ease, background 0.22s ease;
   white-space: nowrap;
   font-family: var(--font-body);
 }
@@ -513,7 +514,7 @@
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
-  transition: transform 0.18s, box-shadow 0.18s;
+  transition: transform 0.18s, box-shadow 0.18s, filter 0.18s;
   font-family: var(--font-body);
   box-shadow: 0 4px 12px var(--orange-glow);
 }
@@ -521,6 +522,7 @@
 .addBtn:hover {
   transform: scale(1.07);
   box-shadow: 0 8px 20px var(--orange-glow);
+  filter: brightness(1.02);
 }
 
 .addBtnPop {
@@ -546,18 +548,20 @@
 .qtyControl button {
   width: 34px;
   height: 34px;
-  background: none;
-  border: none;
+  background: #fff;
+  border: 0;
+  border-right: 1px solid rgba(255, 77, 28, 0.12);
   font-size: 18px;
   font-weight: 700;
   color: var(--orange);
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background 0.15s, transform 0.15s;
   font-family: var(--font-body);
 }
 
 .qtyControl button:hover {
   background: var(--orange-pale);
+  transform: translateY(-1px);
 }
 
 .qtyControl span {

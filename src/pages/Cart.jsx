@@ -1,43 +1,77 @@
-import React from "react";
+import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useCart, cartStore } from "../lib/cart-store";
+import { createOrder } from "../lib/api";
+import BackButton from "../components/BackButton";
 import styles from "../styles/Cart.module.css";
 
 function Cart() {
   const { items, totalItems, totalAmount } = useCart();
+  const [placing, setPlacing] = useState(false);
+  const [orderToken, setOrderToken] = useState(null);
 
-  if (totalItems === 0) {
+  const handlePlaceOrder = async () => {
+    setPlacing(true);
+
+    try {
+      const order = await createOrder({
+        items,
+        total_amount: totalAmount,
+        estimated_time: items.reduce(
+          (sum, item) => sum + (item.prep_time_minutes || 5),
+          0
+        ),
+        status: "placed",
+        customer_name: "",
+        customer_note: "",
+      });
+
+      cartStore.clear();
+      setOrderToken(order.token_number);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setPlacing(false);
+    }
+  };
+
+  if (totalItems === 0 && !orderToken) {
     return (
       <div className={styles.empty}>
+        <BackButton to="/" label="Back" />
         <h2>Your cart is empty 🛒</h2>
-        <a href="/">Go to Menu</a>
+        <Link to="/" className={styles.successBtn}>
+          Go to Menu
+        </Link>
       </div>
     );
   }
 
-  const handlePlaceOrder = () => {
-  const existing = JSON.parse(localStorage.getItem("orders") || "[]");
+  if (orderToken) {
+    return (
+      <div className={styles.container}>
+        <BackButton to="/" label="Back" />
+        <div className={styles.success}>
+          <div className={styles.successEmoji}>✅</div>
+          <h1>Order Placed!</h1>
+          <p className={styles.successToken}>Token #{orderToken}</p>
+          <p>Your order has been submitted. You can track it using your token number.</p>
+          <div className={styles.successActions}>
+            <Link to="/track" className={styles.successBtn}>
+              🔎 Track Order
+            </Link>
+            <a href="/" className={styles.successBtnAlt}>
+              ← Back to Menu
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-  const order = {
-    id: Date.now(),
-    token_number: existing.length + 1,
-    items,
-    total_amount: totalAmount,
-    estimated_time: items.reduce(
-      (sum, i) => sum + (i.prep_time_minutes || 5),
-      0
-    ),
-    status: "placed",
-    created_at: new Date().toISOString(),
-  };
-
-  localStorage.setItem("orders", JSON.stringify([...existing, order]));
-
-  cartStore.clear();
-
-  alert(`✅ Order placed! Token #${order.token_number}`);
-};
   return (
     <div className={styles.container}>
+      <BackButton to="/" label="Back" />
       <h1>Your Cart</h1>
 
       {items.map((item) => (
@@ -61,7 +95,9 @@ function Cart() {
 
       <div className={styles.footer}>
         <h2>Total: ₹{totalAmount}</h2>
-        <button onClick={handlePlaceOrder}>Place Order</button>
+        <button onClick={handlePlaceOrder} disabled={placing}>
+          {placing ? "Placing..." : "🛒 Place Order"}
+        </button>
       </div>
     </div>
   );

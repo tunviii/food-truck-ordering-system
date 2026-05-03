@@ -1,30 +1,61 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import BackButton from "../components/BackButton";
+import { fetchOrders, updateOrderStatus } from "../lib/api";
 import styles from "../styles/Kitchen.module.css";
 
 const ACTIVE_STATUSES = ["placed", "accepted", "cooking", "ready"];
 
 function Kitchen() {
   const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState("");
 
-  const loadOrders = () => {
-    const data = JSON.parse(localStorage.getItem("orders") || "[]");
-    setOrders(data.filter((o) => ACTIVE_STATUSES.includes(o.status)));
+  const loadOrders = async ({ silent = false } = {}) => {
+    if (silent) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
+
+    try {
+      const data = await fetchOrders();
+      setOrders(data.filter((order) => ACTIVE_STATUSES.includes(order.status)));
+      setError("");
+    } catch (loadError) {
+      setError(loadError.message);
+    } finally {
+      if (silent) {
+        setRefreshing(false);
+      } else {
+        setLoading(false);
+      }
+    }
   };
 
   useEffect(() => {
-    loadOrders();
+    const bootstrap = async () => {
+      await loadOrders();
+    };
 
-    // simple polling instead of realtime
-    const interval = setInterval(loadOrders, 1000);
+    bootstrap();
+
+    const interval = setInterval(() => {
+      loadOrders({ silent: true });
+    }, 1000);
+
     return () => clearInterval(interval);
   }, []);
 
-  const updateStatus = (id, status) => {
-    const updated = JSON.parse(localStorage.getItem("orders") || "[]")
-      .map((o) => (o.id === id ? { ...o, status } : o));
+  const updateStatus = async (id, status) => {
+    setError("");
 
-    localStorage.setItem("orders", JSON.stringify(updated));
-    loadOrders();
+    try {
+      await updateOrderStatus(id, status);
+      await loadOrders({ silent: true });
+    } catch (updateError) {
+      setError(updateError.message);
+    }
   };
 
   const buckets = {
@@ -34,23 +65,26 @@ function Kitchen() {
     ready: [],
   };
 
-  orders.forEach((o) => {
-    if (buckets[o.status]) {
-      buckets[o.status].push(o);
+  orders.forEach((order) => {
+    if (buckets[order.status]) {
+      buckets[order.status].push(order);
     }
   });
 
   return (
     <div className={styles.container}>
-      <h1> Kitchen Dashboard</h1>
+      <BackButton to="/" label="Back" />
+      <h1>Kitchen Dashboard</h1>
+      {(loading || refreshing) && <p>Loading orders...</p>}
+      {error && <p>{error}</p>}
 
       <div className={styles.grid}>
         <Column title="New Orders" count={buckets.placed.length}>
-          {buckets.placed.map((o) => (
+          {buckets.placed.map((order) => (
             <OrderCard
-              key={o.id}
-              order={o}
-              actionLabel="Accept"
+              key={order.id}
+              order={order}
+              actionLabel="✅ Accept"
               next="accepted"
               updateStatus={updateStatus}
             />
@@ -58,11 +92,11 @@ function Kitchen() {
         </Column>
 
         <Column title="Accepted" count={buckets.accepted.length}>
-          {buckets.accepted.map((o) => (
+          {buckets.accepted.map((order) => (
             <OrderCard
-              key={o.id}
-              order={o}
-              actionLabel="Start Cooking"
+              key={order.id}
+              order={order}
+              actionLabel="🍳 Start Cooking"
               next="cooking"
               updateStatus={updateStatus}
             />
@@ -70,11 +104,11 @@ function Kitchen() {
         </Column>
 
         <Column title="Cooking" count={buckets.cooking.length}>
-          {buckets.cooking.map((o) => (
+          {buckets.cooking.map((order) => (
             <OrderCard
-              key={o.id}
-              order={o}
-              actionLabel="Mark Ready"
+              key={order.id}
+              order={order}
+              actionLabel="🎉 Mark Ready"
               next="ready"
               updateStatus={updateStatus}
             />
@@ -82,11 +116,11 @@ function Kitchen() {
         </Column>
 
         <Column title="Ready" count={buckets.ready.length}>
-          {buckets.ready.map((o) => (
+          {buckets.ready.map((order) => (
             <OrderCard
-              key={o.id}
-              order={o}
-              actionLabel="Complete"
+              key={order.id}
+              order={order}
+              actionLabel="✔️ Complete"
               next="completed"
               updateStatus={updateStatus}
               ready
@@ -122,23 +156,21 @@ function OrderCard({ order, actionLabel, next, updateStatus, ready }) {
       </div>
 
       <div className={styles.items}>
-        {order.items.map((item, i) => (
-          <p key={i}>
+        {order.items.map((item, index) => (
+          <p key={`${order.id}-${index}`}>
             <b>{item.quantity}×</b> {item.name}
           </p>
         ))}
       </div>
 
       <div className={styles.actions}>
-        <button onClick={() => updateStatus(order.id, next)}>
-          {actionLabel}
-        </button>
+        <button onClick={() => updateStatus(order.id, next)}>{actionLabel}</button>
 
         <button
           className={styles.cancel}
           onClick={() => updateStatus(order.id, "cancelled")}
         >
-          Cancel
+          ✖ Cancel
         </button>
       </div>
     </div>

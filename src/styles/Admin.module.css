@@ -1,24 +1,75 @@
 .container {
-  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px 20px 40px;
+}
+
+.backButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 18px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 77, 28, 0.16);
+  background: rgba(255, 255, 255, 0.9);
+  color: #1a1108;
+  text-decoration: none;
+  font-weight: 700;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+}
+
+.backButton:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 77, 28, 0.28);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
 }
 
 .form {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 20px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+  padding: 16px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.08);
 }
 
 .form input,
-.form select {
-  padding: 6px;
+.form select,
+.form textarea {
+  padding: 12px 14px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 14px;
+  background: #fff;
+  font: inherit;
+}
+
+.form textarea {
+  min-height: 72px;
+  resize: vertical;
+  grid-column: span 2;
 }
 
 .form button {
-  background: #ff4d4d;
+  grid-column: span 2;
+  min-height: 46px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #f97316, #f59e0b);
   color: white;
   border: none;
-  padding: 6px 12px;
+  padding: 12px 18px;
+  font-weight: 700;
   cursor: pointer;
+  box-shadow: 0 10px 22px rgba(249, 115, 22, 0.2);
+  transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
+}
+
+.form button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 28px rgba(249, 115, 22, 0.25);
 }
 
 .table {
@@ -34,8 +85,22 @@
 }
 
 .table button {
-  background: red;
+  border: 0;
+  border-radius: 999px;
+  padding: 8px 12px;
+  background: #1f2937;
   color: white;
-  border: none;
-  padding: 5px 10px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 8px 18px rgba(31, 41, 55, 0.14);
+  transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+}
+
+.table button:hover {
+  transform: translateY(-1px);
+}
+
+.table button + button {
+  margin-left: 8px;
+  background: linear-gradient(135deg, #f97316, #f59e0b);
 }

@@ -1,66 +1,79 @@
 import { useEffect, useState } from "react";
+import {
+  createMenuItem,
+  deleteMenuItem,
+  fetchMenuItems,
+  toggleMenuItemAvailability,
+  updateMenuItem,
+} from "./api";
 
-const STORAGE_KEY = "wokroll_menu";
 const listeners = new Set();
+let cache = [];
+let loaded = false;
+let loadingPromise = null;
 
-const DEFAULT_MENU = [
-  {
-    id: "1",
-    name: "Veg Hakka Noodles",
-    description: "Classic noodles",
-    price: 80,
-    category: "noodles",
-    is_veg: true,
-    is_spicy: false,
-    prep_time_minutes: 8,
-    is_available: true,
-  }
-];
-
-function readMenu() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_MENU));
-      return DEFAULT_MENU;
-    }
-    return JSON.parse(raw);
-  } catch {
-    return DEFAULT_MENU;
-  }
-}
-
-function writeMenu(items) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+function notify() {
   listeners.forEach((l) => l());
 }
 
+async function loadMenu(force = false) {
+  if (loaded && !force) {
+    return cache;
+  }
+
+  if (!loadingPromise) {
+    loadingPromise = fetchMenuItems()
+      .then((items) => {
+        cache = items;
+        loaded = true;
+        notify();
+        return items;
+      })
+      .finally(() => {
+        loadingPromise = null;
+      });
+  }
+
+  return loadingPromise;
+}
+
 export const menuStore = {
-  getItems: readMenu,
-
-  add(item) {
-    const items = readMenu();
-    items.push(item);
-    writeMenu(items);
+  getItems() {
+    return cache;
   },
 
-  remove(id) {
-    writeMenu(readMenu().filter((i) => i.id !== id));
+  async load() {
+    return loadMenu();
   },
 
-  toggleAvailability(id) {
-    const items = readMenu().map((i) =>
-      i.id === id ? { ...i, is_available: !i.is_available } : i
-    );
-    writeMenu(items);
+  async add(item) {
+    const saved = await createMenuItem(item);
+    cache = [saved, ...cache];
+    loaded = true;
+    notify();
+    return saved;
   },
 
-  update(updatedItem) {
-  const items = readMenu().map((item) =>
-    item.id === updatedItem.id ? updatedItem : item
-  );
-  writeMenu(items);
-},
+  async remove(id) {
+    await deleteMenuItem(id);
+    cache = cache.filter((i) => i.id !== id);
+    notify();
+  },
+
+  async toggleAvailability(id) {
+    const updatedItem = await toggleMenuItemAvailability(id);
+    cache = cache.map((i) => (i.id === id ? updatedItem : i));
+    notify();
+    return updatedItem;
+  },
+
+  async update(updatedItem) {
+    const saved = await updateMenuItem(updatedItem.id, updatedItem);
+    cache = cache.map((item) => (item.id === updatedItem.id ? saved : item));
+    loaded = true;
+    notify();
+    return saved;
+  },
 
   subscribe(fn) {
     listeners.add(fn);
@@ -69,15 +82,36 @@ export const menuStore = {
 };
 
 export function useMenu() {
-  const [items, setItems] = useState([]);
+  const [state, setState] = useState(() => ({
+    items: cache,
+    loading: !loaded,
+    error: null,
+  }));
 
   useEffect(() => {
-    setItems(menuStore.getItems());
-    const unsub = menuStore.subscribe(() =>
-      setItems(menuStore.getItems())
-    );
-    return unsub;
+    let alive = true;
+
+    menuStore
+      .load()
+      .then((items) => {
+        if (!alive) return;
+        setState({ items, loading: false, error: null });
+      })
+      .catch((error) => {
+        if (!alive) return;
+        setState({ items: [], loading: false, error: error.message });
+      });
+
+    const unsub = menuStore.subscribe(() => {
+      if (!alive) return;
+      setState({ items: menuStore.getItems(), loading: false, error: null });
+    });
+
+    return () => {
+      alive = false;
+      unsub();
+    };
   }, []);
 
-  return items;
+  return state;
 }

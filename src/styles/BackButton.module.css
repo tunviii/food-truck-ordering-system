@@ -1,0 +1,28 @@
+.backButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 16px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #f97316, #f59e0b);
+  color: #ffffff;
+  text-decoration: none;
+  font-weight: 700;
+  box-shadow: 0 10px 24px rgba(249, 115, 22, 0.22);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+}
+
+.backButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 28px rgba(249, 115, 22, 0.28);
+}
+
+.backButton:active {
+  transform: translateY(0);
+  opacity: 0.96;
+}
+
+.arrow {
+  font-size: 1.1rem;
+  line-height: 1;
+}
